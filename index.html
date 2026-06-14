@@ -452,7 +452,7 @@ function renderToday(){
     <h1 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(28px,5vw,46px);margin:0 0 22px;line-height:1.08;color:var(--text);">
       ${greeting}, <input id="nameInput" value="${esc(state.userName)}" placeholder="friend"
         style="font-family:'Newsreader',serif;font-size:clamp(28px,5vw,46px);font-weight:400;color:var(--accent);border:none;outline:none;background:transparent;max-width:200px;padding:0;"
-        oninput="setState({userName:this.value})">
+        oninput="state.userName=this.value;save();">
     </h1>
     <div style="background:var(--quote-bg);border-radius:16px;padding:20px 22px;margin-bottom:22px;display:flex;gap:14px;align-items:flex-start;">
       <span style="font-family:'Newsreader',serif;font-size:38px;line-height:.7;color:var(--accentMid);flex:none;">"</span>
