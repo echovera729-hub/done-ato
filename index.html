@@ -20,6 +20,7 @@
 [data-theme="sky"]{--bg:#f2f7fc;--surface:#fff;--border:#d8eaf5;--border2:#eaf3fa;--accent:#3a7abf;--accent2:#2f68a8;--accentBg:#e8f2fb;--accentBg2:#d8eaf5;--accentMid:#90bcdf;--accentBar:#a8ccec;--text:#1a3050;--text2:#2a5070;--text3:#2a5070;--muted:#6898b8;--muted2:#7aaac8;--muted3:#5888a8;--placeholder:#9abbcf;--inpBg:#f8fbfd;--navHover:#eaf3fb;--navActive:#d8eaf5;--sidebarBg:#fff;--topbarBg:#fff;--cardShadow:0 1px 2px rgba(30,80,140,.04),0 14px 30px -22px rgba(30,80,140,.14);--leaf:#a8ccec;--scrollThumb:#a8ccec;--scrollThumbHover:#88b4d8;--quote-bg:#e8f2fb;--today-highlight:#eaf3fb;--weekend-color:#7aaac8;--done-fill:#3a7abf;--done-text:#9abbcf;--ring-track:#d8eaf5;--bnav-active-border:#3a7abf;}
 [data-theme="peach"]{--bg:#fdf6f0;--surface:#fff;--border:#f0ddd0;--border2:#f8ede5;--accent:#b86040;--accent2:#a05030;--accentBg:#fceee6;--accentBg2:#f5e0d0;--accentMid:#e0a888;--accentBar:#e8c0a0;--text:#3c2010;--text2:#6a3820;--text3:#6a3820;--muted:#b08070;--muted2:#c09880;--muted3:#a07060;--placeholder:#c8a898;--inpBg:#fdf9f6;--navHover:#faeee8;--navActive:#f5e2d8;--sidebarBg:#fff;--topbarBg:#fff;--cardShadow:0 1px 2px rgba(100,50,20,.04),0 14px 30px -22px rgba(100,50,20,.14);--leaf:#e8c0a0;--scrollThumb:#e0c0a8;--scrollThumbHover:#c8a088;--quote-bg:#fceee6;--today-highlight:#faeee8;--weekend-color:#c09880;--done-fill:#b86040;--done-text:#c8a898;--ring-track:#f0ddd0;--bnav-active-border:#b86040;}
 [data-theme="mint"]{--bg:#f0f8f5;--surface:#fff;--border:#c8e8dc;--border2:#ddf0e8;--accent:#2e8b72;--accent2:#22755e;--accentBg:#e0f5ee;--accentBg2:#c8eade;--accentMid:#80c8b0;--accentBar:#a0d8c4;--text:#0f3028;--text2:#1e5040;--text3:#1e5040;--muted:#58988a;--muted2:#70aca0;--muted3:#489080;--placeholder:#88c0b0;--inpBg:#f5fbf8;--navHover:#e0f5ee;--navActive:#c8eade;--sidebarBg:#fff;--topbarBg:#fff;--cardShadow:0 1px 2px rgba(20,80,60,.04),0 14px 30px -22px rgba(20,80,60,.14);--leaf:#a0d8c4;--scrollThumb:#a0d0c0;--scrollThumbHover:#80b8a8;--quote-bg:#e0f5ee;--today-highlight:#e0f5ee;--weekend-color:#70aca0;--done-fill:#2e8b72;--done-text:#88c0b0;--ring-track:#c8e8dc;--bnav-active-border:#2e8b72;}
+[data-theme="honey"]{--bg:#fdf9ec;--surface:#fff;--border:#f3e7c4;--border2:#f8efd8;--accent:#c08a1e;--accent2:#a8761a;--accentBg:#fbf2dc;--accentBg2:#f6e8c4;--accentMid:#e6c878;--accentBar:#ecd9a0;--text:#4a3a10;--text2:#6b5420;--text3:#6b5420;--muted:#b89a5c;--muted2:#c8ad74;--muted3:#a8895a;--placeholder:#dccd9c;--inpBg:#fefcf5;--navHover:#faf2dc;--navActive:#f6e8c4;--sidebarBg:#fff;--topbarBg:#fff;--cardShadow:0 1px 2px rgba(140,100,10,.05),0 14px 30px -22px rgba(140,100,10,.16);--leaf:#ecd9a0;--scrollThumb:#ecd9a0;--scrollThumbHover:#dcc488;--quote-bg:#fbf2dc;--today-highlight:#faf2dc;--weekend-color:#c8ad74;--done-fill:#c08a1e;--done-text:#dccd9c;--neg-bg:#fbeeee;--neg-border:#e6cccc;--neg-text:#b23a48;--ring-track:#f6e8c4;--bnav-active-border:#c08a1e;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);font-family:'Manrope',-apple-system,sans-serif;color:var(--text);min-height:100vh;transition:background .3s,color .3s;}
 input,button,textarea{font-family:inherit;}
@@ -114,6 +115,10 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
 .sticker:active{cursor:grabbing;}
 .sticker-resize-handle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:nwse-resize;opacity:.75;touch-action:none;}
 .sticker-resize-handle:hover{opacity:1;transform:scale(1.15);}
+.sticker-rotate-handle{position:absolute;left:-8px;top:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:grab;opacity:.75;touch-action:none;display:flex;align-items:center;justify-content:center;}
+.sticker-rotate-handle:hover{opacity:1;transform:scale(1.15);}
+.sticker-rotate-handle:active{cursor:grabbing;}
+.sticker-rotate-handle svg{color:var(--accent);pointer-events:none;}
 .sticker-toolbar{position:fixed;bottom:80px;right:20px;z-index:210;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
 .sticker-fab{width:48px;height:48px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .2s,background .15s;}
 .sticker-fab:hover{transform:scale(1.08);}
@@ -278,6 +283,7 @@ const THEMES=[
   {key:'sky',name:'Sky',desc:'Clear morning blue',swatches:['#3a7abf','#90bcdf','#f2f7fc'],themeColor:'#3a7abf'},
   {key:'peach',name:'Peach',desc:'Warm terracotta',swatches:['#b86040','#e0a888','#fdf6f0'],themeColor:'#b86040'},
   {key:'mint',name:'Mint',desc:'Fresh cool teal',swatches:['#2e8b72','#80c8b0','#f0f8f5'],themeColor:'#2e8b72'},
+  {key:'honey',name:'Honey',desc:'Warm buttery yellow',swatches:['#c08a1e','#e6c878','#fdf9ec'],themeColor:'#c08a1e'},
 ];
 let currentTheme=localStorage.getItem('sage_theme')||'sage';
 function applyTheme(key){ currentTheme=key; document.documentElement.setAttribute('data-theme',key); const t=THEMES.find(x=>x.key===key); document.getElementById('themeColorMeta').content=t.themeColor; localStorage.setItem('sage_theme',key); }
@@ -857,7 +863,8 @@ function removeNote(id){ setState({notes:state.notes.filter(n=>n.id!==id)}); }
 // Expanded sticker set across a few playful categories
 const STICKER_EMOJIS=[
   '🌸','🌿','🍃','🌻','🌷','🌺','🌹','🌼','🍀','🌵','🌴','🌙','⭐','🌟','✨','💫','🌈','☀️','☁️','❄️',
-  '🎉','🎊','🎀','🎈','🥳','🎵','🎶','🪄','🦋','🐝','🐞','🐱','🐶','🦄','🐰','🦢','🐢','🐬',
+  '🎉','🎊','🎀','🎈','🥳','🎵','🎶','🪄',
+  '🦋','🐝','🐞','🐱','🐶','🦄','🐰','🦢','🐢','🐬','🐼','🦊','🦁','🐯','🐨','🐻','🐮','🐷','🐸','🦉','🐧','🐠','🦒','🐘','🦓','🐴','🐔','🐳','🦔','🐭','🐹','🦝','🐙','🦩',
   '💖','💕','💗','❤️','🧡','💛','💚','💙','💜','🤍',
   '🍓','🍉','🍩','🍪','☕','🧋','🍄','🍯','🧁','🍒',
   '🫧','🌊','🔥','👑','💎','📌','📍','✏️','📎','🧸','🎯','💡'
@@ -930,7 +937,7 @@ function renderStickers(){
     el.className='sticker';
     el.style.left=s.x+'%'; el.style.top=s.y+'%'; el.style.transform=`rotate(${s.rot}deg)`; el.style.fontSize=s.size+'px';
     el.textContent=s.emoji;
-    el.title='Drag to move • scroll to resize • double-click to remove';
+    el.title='Drag to move • scroll or drag corner to resize • drag top-left to rotate • double-click to remove';
     el.ondblclick=(ev)=>{ ev.stopPropagation(); removeSticker(s.id); };
 
     // Scroll to resize (desktop)
@@ -984,6 +991,35 @@ function renderStickers(){
       ev.stopPropagation();
     });
     el.appendChild(handle);
+
+    // Rotate handle (top-left corner) — drag around the sticker's center to spin it
+    const rotHandle=document.createElement('div');
+    rotHandle.className='sticker-rotate-handle';
+    rotHandle.innerHTML='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v5h-5"></path></svg>';
+    let rotating=false,rotStartAngle=0,rotOrigRot=0;
+    rotHandle.addEventListener('pointerdown',(ev)=>{
+      rotating=true;
+      const r=el.getBoundingClientRect();
+      const cx=r.left+r.width/2, cy=r.top+r.height/2;
+      rotStartAngle=Math.atan2(ev.clientY-cy,ev.clientX-cx)*180/Math.PI;
+      rotOrigRot=s.rot||0;
+      try{ rotHandle.setPointerCapture(ev.pointerId); }catch(err){}
+      ev.preventDefault(); ev.stopPropagation();
+    });
+    rotHandle.addEventListener('pointermove',(ev)=>{
+      if(!rotating) return;
+      const r=el.getBoundingClientRect();
+      const cx=r.left+r.width/2, cy=r.top+r.height/2;
+      const angle=Math.atan2(ev.clientY-cy,ev.clientX-cx)*180/Math.PI;
+      s.rot=rotOrigRot+(angle-rotStartAngle);
+      el.style.transform=`rotate(${s.rot}deg)`;
+      ev.stopPropagation();
+    });
+    rotHandle.addEventListener('pointerup',(ev)=>{
+      if(rotating){ rotating=false; save(); try{ rotHandle.releasePointerCapture(ev.pointerId); }catch(err){} }
+      ev.stopPropagation();
+    });
+    el.appendChild(rotHandle);
 
     layer.appendChild(el);
   });
