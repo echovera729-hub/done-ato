@@ -113,9 +113,12 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
 #stickerLayer.placing{pointer-events:all;cursor:crosshair;}
 .sticker{position:absolute;line-height:1;user-select:none;-webkit-user-select:none;pointer-events:all;animation:stickerPop .35s cubic-bezier(.34,1.56,.64,1) forwards;cursor:grab;transform-origin:center;touch-action:none;}
 .sticker:active{cursor:grabbing;}
-.sticker-resize-handle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:nwse-resize;opacity:.75;touch-action:none;}
+.sticker.selected{outline:2px dashed var(--accent);outline-offset:5px;border-radius:8px;}
+.sticker-resize-handle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:nwse-resize;opacity:0;pointer-events:none;touch-action:none;transition:opacity .15s;}
+.sticker.selected .sticker-resize-handle{opacity:.85;pointer-events:all;}
 .sticker-resize-handle:hover{opacity:1;transform:scale(1.15);}
-.sticker-rotate-handle{position:absolute;left:-8px;top:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:grab;opacity:.75;touch-action:none;display:flex;align-items:center;justify-content:center;}
+.sticker-rotate-handle{position:absolute;left:-8px;top:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:grab;opacity:0;pointer-events:none;touch-action:none;display:flex;align-items:center;justify-content:center;transition:opacity .15s;}
+.sticker.selected .sticker-rotate-handle{opacity:.85;pointer-events:all;}
 .sticker-rotate-handle:hover{opacity:1;transform:scale(1.15);}
 .sticker-rotate-handle:active{cursor:grabbing;}
 .sticker-rotate-handle svg{color:var(--accent);pointer-events:none;}
@@ -869,7 +872,7 @@ const STICKER_EMOJIS=[
   '🍓','🍉','🍩','🍪','☕','🧋','🍄','🍯','🧁','🍒',
   '🫧','🌊','🔥','👑','💎','📌','📍','✏️','📎','🧸','🎯','💡'
 ];
-let pickedSticker=null,stickerPanelOpen=false;
+let pickedSticker=null,stickerPanelOpen=false,selectedStickerId=null;
 
 // Friendly labels for current view, shown in the picker
 const VIEW_LABELS={today:'Today',week:'Week',month:'Month',goals:'Goals',budget:'Budget',meals:'Meals',shopping:'Shopping',selfcare:'Self-care',notes:'Notes'};
@@ -934,10 +937,11 @@ function renderStickers(){
   getViewStickers().forEach(s=>{
     if(!s.size) s.size=32;
     const el=document.createElement('div');
-    el.className='sticker';
+    el.className='sticker'+(s.id===selectedStickerId?' selected':'');
+    el.dataset.id=s.id;
     el.style.left=s.x+'%'; el.style.top=s.y+'%'; el.style.transform=`rotate(${s.rot}deg)`; el.style.fontSize=s.size+'px';
     el.textContent=s.emoji;
-    el.title='Drag to move • scroll or drag corner to resize • drag top-left to rotate • double-click to remove';
+    el.title='Click to select, then drag the handles to resize or rotate • drag to move • double-click to remove';
     // The pop-in entrance animation has fill:forwards, which otherwise keeps
     // overriding the inline `transform` (and thus blocks rotation) forever.
     // Once it finishes, drop the animation so our rotate/move transforms apply.
@@ -971,7 +975,16 @@ function renderStickers(){
       el.style.left=s.x+'%'; el.style.top=s.y+'%';
     });
     el.addEventListener('pointerup',(ev)=>{
-      if(dragging){ dragging=false; if(moved) save(); try{ el.releasePointerCapture(ev.pointerId); }catch(err){} }
+      if(dragging){
+        dragging=false;
+        if(moved) save();
+        else{
+          // Plain click/tap (no drag) — toggle selection to show resize/rotate handles
+          selectedStickerId=(selectedStickerId===s.id)?null:s.id;
+          renderStickers();
+        }
+        try{ el.releasePointerCapture(ev.pointerId); }catch(err){}
+      }
     });
 
     // Resize handle (bottom-right corner)
@@ -1029,6 +1042,13 @@ function renderStickers(){
   });
 }
 document.getElementById('stickerLayer').addEventListener('click',placeStickerAt);
+// Tapping anywhere outside a sticker deselects it (hides its handles again)
+document.addEventListener('pointerdown',(ev)=>{
+  if(selectedStickerId && !ev.target.closest('.sticker')){
+    selectedStickerId=null;
+    renderStickers();
+  }
+});
 renderStickers();
 
 // ── RENDER ─────────────────────────────────────────────────────────────
