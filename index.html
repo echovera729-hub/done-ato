@@ -108,24 +108,30 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
 .theme-modal-close{margin-top:18px;width:100%;padding:11px;border:none;background:var(--accent);color:#fff;border-radius:12px;font-size:14.5px;font-weight:600;transition:background .15s;}
 .theme-modal-close:hover{background:var(--accent2);}
 /* Sticker layer */
-#stickerLayer{position:fixed;inset:0;pointer-events:none;z-index:200;}
+#stickerLayer{position:fixed;inset:0;pointer-events:none;z-index:200;overflow:hidden;}
 #stickerLayer.placing{pointer-events:all;cursor:crosshair;}
-.sticker{position:absolute;font-size:28px;line-height:1;user-select:none;pointer-events:all;animation:stickerPop .35s cubic-bezier(.34,1.56,.64,1) forwards;cursor:grab;transform-origin:center;}
+.sticker{position:absolute;line-height:1;user-select:none;-webkit-user-select:none;pointer-events:all;animation:stickerPop .35s cubic-bezier(.34,1.56,.64,1) forwards;cursor:grab;transform-origin:center;touch-action:none;}
 .sticker:active{cursor:grabbing;}
+.sticker-resize-handle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;background:var(--surface);border:2px solid var(--accent);border-radius:50%;cursor:nwse-resize;opacity:.75;touch-action:none;}
+.sticker-resize-handle:hover{opacity:1;transform:scale(1.15);}
 .sticker-toolbar{position:fixed;bottom:80px;right:20px;z-index:210;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
 .sticker-fab{width:48px;height:48px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .2s,background .15s;}
 .sticker-fab:hover{transform:scale(1.08);}
 .sticker-fab.active{background:var(--neg-text);}
-.sticker-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.14);display:none;flex-wrap:wrap;gap:6px;width:220px;}
+.sticker-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.14);display:none;flex-wrap:wrap;gap:5px;width:260px;max-height:300px;overflow-y:auto;}
 .sticker-panel.open{display:flex;}
-.sticker-pick{width:38px;height:38px;border:none;background:transparent;font-size:22px;border-radius:10px;cursor:pointer;transition:background .15s;}
+.sticker-panel .sticker-tab-note{width:100%;font-size:11px;color:var(--muted2);font-weight:600;margin:0 0 4px;padding:0 2px;}
+.sticker-pick{width:36px;height:36px;border:none;background:transparent;font-size:20px;border-radius:10px;cursor:pointer;transition:background .15s;flex:none;}
 .sticker-pick:hover{background:var(--navHover);}
 .sticker-pick.selected{background:var(--navActive);outline:2px solid var(--accent);}
 .sticker-clear{margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);background:transparent;border-radius:10px;font-size:12.5px;font-weight:600;color:var(--muted2);transition:background .15s;}
 .sticker-clear:hover{background:var(--btnRemoveHover);color:var(--btnRemoveHoverText);}
+/* Week / month nav */
+.wm-nav-btn{width:34px;height:34px;border:1px solid var(--border);background:var(--surface);color:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.wm-nav-btn:hover{background:var(--navHover);}
+.wm-pill-btn{padding:0 14px;height:34px;border:1px solid var(--border);background:var(--surface);color:var(--accent);border-radius:10px;font-size:13px;font-weight:700;transition:background .15s;}
+.wm-pill-btn:hover{background:var(--navHover);}
 /* History modal */
-.hist-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:150;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-.hist-modal{background:var(--surface);border-radius:22px;padding:28px;width:480px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.18);animation:themePop .2s ease;}
 /* Tablet */
 @media(max-width:1023px) and (min-width:768px){
   .sidebar-wrap{display:none;}.sidebar-toggle{display:none;}
@@ -238,11 +244,6 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
   </div>
 </div>
 
-<!-- History modal -->
-<div class="hist-modal-overlay" id="histModal" style="display:none;" onclick="if(event.target===this)closeHistModal()">
-  <div class="hist-modal" id="histModalContent"></div>
-</div>
-
 <!-- Sticker layer -->
 <div id="stickerLayer"></div>
 
@@ -262,12 +263,10 @@ function svgIcon(path,size=20){ return `<svg width="${size}" height="${size}" vi
 function fmt(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
 function todayKey(){ const now=new Date(); return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'); }
 function dateToKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-// Get Mon-Sun dates for current week
-function getWeekDates(){
-  const now=new Date(); const day=now.getDay(); const monday=new Date(now);
-  monday.setDate(now.getDate()-((day+6)%7));
-  return Array.from({length:7},(_,i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d; });
-}
+// Monday of the week containing date d (DAYS = Mon..Sun)
+function getMonday(d){ const date=new Date(d); const day=date.getDay(); const diff=(day+6)%7; date.setDate(date.getDate()-diff); date.setHours(12,0,0,0); return date; }
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function getWeekDatesFrom(monday){ return Array.from({length:7},(_,i)=>addDays(monday,i)); }
 const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const QUOTES=["Small steps, taken daily, become the path.","Progress is quiet. Keep showing up.","You don't have to do it all — just the next thing.","A calm mind plans the clearest day.","Done is kinder than perfect.","Tend to today, and tomorrow follows.","Your pace is the right pace.","Begin where you are, with what you have.","Rest is part of the work.","What you water, grows.","One good hour can change a whole day.","Gentle and steady carries you far.","Clarity comes from starting, not waiting.","Make room for what matters most.","Today is enough to focus on."];
 
@@ -320,7 +319,9 @@ function defaultState(){
     scDraft:'',
     notes:[{id:uid(),title:'Ideas',body:'Start a small herb garden on the balcony — basil, mint, thyme.',date:'Jun 12'}],
     noteTitleDraft:'', noteBodyDraft:'',
-    stickers:[] // [{id,emoji,x,y,rot}]
+    viewWeekStart: dateToKey(getMonday(new Date())), // Monday of currently displayed week
+    viewMonthOffset: 0, // months from current month, for Month tab navigation
+    stickersByView:{} // { todayView: [{id,emoji,x,y,rot,size}], weekView: [...], ... }
   };
 }
 
@@ -328,9 +329,12 @@ let state;
 try{ const s=localStorage.getItem(KEY); const p=JSON.parse(s); state=(p&&p.week&&p.meals)?p:defaultState(); }
 catch(e){ state=defaultState(); }
 
-// Ensure stickers and history always exist
-if(!state.stickers) state.stickers=[];
+// Migrations / ensure shape
 if(!state.history) state.history={};
+if(!state.stickersByView) state.stickersByView={};
+if(state.stickers){ state.stickersByView.today=state.stickers; delete state.stickers; }
+if(!state.viewWeekStart) state.viewWeekStart=dateToKey(getMonday(new Date()));
+if(state.viewMonthOffset===undefined||state.viewMonthOffset===null) state.viewMonthOffset=0;
 
 // ── TASK / DAY LOGIC ───────────────────────────────────────────────────
 // Carry-over: on load, snapshot yesterday's tasks into history (if not done yet)
@@ -368,14 +372,14 @@ function snapshotToday(){
 
 // Tasks shown in "Today" view = those with dayKey === today
 function todayTasks(){ const tk=todayKey(); return state.tasks.filter(t=>t.dayKey===tk||!t.dayKey); }
-// Tasks associated with a specific DAYS[i] label for the current week
-function weekDateKey(dayLabel){
-  const wd=getWeekDates(); const idx=DAYS.indexOf(dayLabel); if(idx<0) return null;
-  return dateToKey(wd[idx]);
-}
-function tasksForWeekDay(dayLabel){
-  const dk=weekDateKey(dayLabel); if(!dk) return [];
-  if(dk===todayKey()) return todayTasks();
+
+// Tasks for any date key (past/today/future) — used by Week & Month views
+// Today & future: live, editable tasks. Past: prefer the history snapshot
+// (carried-over unfinished tasks have already moved to today by then).
+function tasksForDate(dk){
+  const tk=todayKey();
+  if(dk>=tk) return state.tasks.filter(t=>t.dayKey===dk);
+  if(state.history[dk]) return state.history[dk];
   return state.tasks.filter(t=>t.dayKey===dk);
 }
 
@@ -515,43 +519,53 @@ function removeTask(id){ setState({tasks:state.tasks.filter(t=>t.id!==id)}); }
 function prioTask(id){ setState({tasks:state.tasks.map(t=>t.id===id?{...t,priority:!t.priority}:t)}); }
 
 // ── WEEK ───────────────────────────────────────────────────────────────
+function shiftWeek(delta){ setState({viewWeekStart:dateToKey(addDays(new Date(state.viewWeekStart+'T12:00:00'),delta*7))}); }
+function resetWeek(){ setState({viewWeekStart:dateToKey(getMonday(new Date()))}); }
+
 function renderWeek(){
-  const weekDates=getWeekDates();
+  const monday=new Date(state.viewWeekStart+'T12:00:00');
+  const weekDates=getWeekDatesFrom(monday);
   const tk=todayKey();
+  const isCurrentWeek=state.viewWeekStart===dateToKey(getMonday(new Date()));
   // Weekly progress: count all tasks across this week
   let weekTotal=0,weekDone=0;
-  weekDates.forEach((d,i)=>{
-    const dk=dateToKey(d);
-    const dayLabel=DAYS[i];
-    const tasks=dk===tk?todayTasks():state.tasks.filter(t=>t.dayKey===dk);
-    weekTotal+=tasks.length;
-    weekDone+=tasks.filter(t=>t.done).length;
-  });
+  weekDates.forEach(d=>{ const tasks=tasksForDate(dateToKey(d)); weekTotal+=tasks.length; weekDone+=tasks.filter(t=>t.done).length; });
   const weekPct=weekTotal>0?Math.round(weekDone/weekTotal*100):0;
+  const rangeLabel=weekDates[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+weekDates[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   return `<div class="view">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
-      <h1 class="section-title" style="margin:0;">This week</h1>
-      <div style="display:flex;align-items:center;gap:12px;padding-bottom:4px;">
-        <span style="font-size:13px;color:var(--muted2);font-weight:600;">${weekDone}/${weekTotal} tasks</span>
-        <span style="font-size:18px;font-weight:800;color:var(--accent);">${weekPct}%</span>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
+      <div>
+        <h1 class="section-title" style="margin:0;">${isCurrentWeek?'This week':'Week of'}</h1>
+        <p style="margin:4px 0 0;font-size:14px;color:var(--muted2);font-weight:600;">${rangeLabel}</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="wm-nav-btn" onclick="shiftWeek(-1)" title="Previous week">${svgIcon('<path d="M15 18l-6-6 6-6"></path>',16)}</button>
+        ${isCurrentWeek?'':`<button class="wm-pill-btn" onclick="resetWeek()">Today</button>`}
+        <button class="wm-nav-btn" onclick="shiftWeek(1)" title="Next week">${svgIcon('<path d="M9 18l6-6-6-6"></path>',16)}</button>
       </div>
     </div>
-    <div style="height:8px;background:var(--ring-track);border-radius:6px;overflow:hidden;margin-bottom:24px;">
-      <div style="height:100%;width:${weekPct}%;background:var(--accent);border-radius:6px;transition:width .5s cubic-bezier(.4,0,.2,1);"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin:16px 0 24px;">
+      <div style="flex:1;height:8px;background:var(--ring-track);border-radius:6px;overflow:hidden;">
+        <div style="height:100%;width:${weekPct}%;background:var(--accent);border-radius:6px;transition:width .5s cubic-bezier(.4,0,.2,1);"></div>
+      </div>
+      <span style="font-size:13px;color:var(--muted2);font-weight:600;white-space:nowrap;">${weekDone}/${weekTotal} tasks</span>
+      <span style="font-size:18px;font-weight:800;color:var(--accent);min-width:48px;text-align:right;">${weekPct}%</span>
     </div>
     <div class="week-grid">
       ${weekDates.map((d,i)=>{
         const dayLabel=DAYS[i];
         const dk=dateToKey(d);
         const isT=dk===tk;
+        const isPast=dk<tk;
+        const editable=!isPast;
         const dayNum=d.getDate();
         const monthShort=d.toLocaleDateString('en-US',{month:'short'});
-        const tasks=dk===tk?todayTasks():state.tasks.filter(t=>t.dayKey===dk);
+        const tasks=tasksForDate(dk);
         const dDone=tasks.filter(t=>t.done).length;
         const dTotal=tasks.length;
-        return `<div style="background:var(--surface);border:1px solid ${isT?'var(--accentBar)':'var(--border)'};border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:${isT?'0 8px 24px -18px rgba(0,0,0,.2)':'0 1px 2px rgba(0,0,0,.03)'};">
+        return `<div style="background:var(--surface);border:1px solid ${isT?'var(--accentBar)':'var(--border)'};border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:${isT?'0 8px 24px -18px rgba(0,0,0,.2)':'0 1px 2px rgba(0,0,0,.03)'};opacity:${isPast?.85:1};">
           <div style="padding:9px 12px;background:${isT?'var(--accent)':'var(--accentBg)'};color:${isT?'#fff':'var(--text2)'};">
-            <div style="font-size:12px;font-weight:800;letter-spacing:.04em;">${dayLabel}</div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:.04em;">${dayLabel}${isT?' · Today':''}</div>
             <div style="font-size:18px;font-weight:700;line-height:1.1;">${dayNum}</div>
             <div style="font-size:10.5px;opacity:.75;">${monthShort}</div>
           </div>
@@ -562,14 +576,15 @@ function renderWeek(){
             <p style="font-size:10.5px;color:var(--muted2);font-weight:600;margin:3px 0 0;">${dDone}/${dTotal}</p>
           </div>`:''}
           <div style="display:flex;flex-direction:column;gap:5px;padding:8px 8px;min-height:80px;">
-            ${tasks.map(t=>`<div style="display:flex;align-items:center;gap:7px;cursor:pointer;" onclick="toggleTaskByDay('${t.id}')">
+            ${tasks.map(t=>`<div style="display:flex;align-items:center;gap:7px;${editable?'cursor:pointer;':''}" ${editable?`onclick="toggleTaskByDay('${t.id}')"`:''}>
               <span style="width:9px;height:9px;flex:none;border-radius:50%;border:2px solid ${t.done?'var(--done-fill)':'var(--accentBar)'};background:${t.done?'var(--done-fill)':'transparent'};"></span>
               <span style="font-size:11.5px;color:${t.done?'var(--done-text)':'var(--text)'};text-decoration:${t.done?'line-through':'none'};font-weight:500;line-height:1.2;">${esc(t.text)}</span>
             </div>`).join('')}
-            <input value="${esc((state.weekDraft||{})[dayLabel]||'')}" placeholder="+ add task"
+            ${editable?`<input value="${esc((state.weekDraft||{})[dk]||'')}" placeholder="+ add task"
               style="width:100%;padding:5px 6px;border:1px dashed var(--accentBar);border-radius:7px;font-size:11.5px;outline:none;background:transparent;color:var(--text);margin-top:auto;"
-              oninput="state.weekDraft['${dayLabel}']=this.value"
-              onkeydown="if(event.key==='Enter'){addWeekTask('${dayLabel}','${dk}',this);}">
+              oninput="state.weekDraft['${dk}']=this.value"
+              onkeydown="if(event.key==='Enter'){addWeekTask('${dk}',this);}">`
+              :(dTotal===0?`<p style="font-size:10.5px;color:var(--muted2);text-align:center;padding:8px 0;margin:0;">No tasks recorded</p>`:'')}
           </div>
         </div>`;
       }).join('')}
@@ -577,25 +592,42 @@ function renderWeek(){
   </div>`;
 }
 function toggleTaskByDay(id){ setState({tasks:state.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)}); }
-function addWeekTask(dayLabel,dk){
-  const v=(state.weekDraft[dayLabel]||'').trim(); if(!v) return;
-  state.weekDraft[dayLabel]='';
+function addWeekTask(dk){
+  const v=(state.weekDraft[dk]||'').trim(); if(!v) return;
+  state.weekDraft[dk]='';
   const newTask={id:uid(),text:v,done:false,priority:false,dayKey:dk};
   setState({tasks:[...state.tasks,newTask]});
 }
 
 // ── MONTH ──────────────────────────────────────────────────────────────
+function shiftMonth(delta){ setState({viewMonthOffset:state.viewMonthOffset+delta}); }
+function resetMonth(){ setState({viewMonthOffset:0}); }
+function goToWeekOf(dk){
+  const d=new Date(dk+'T12:00:00');
+  setState({viewWeekStart:dateToKey(getMonday(d)),view:'week'});
+}
+
 function renderMonth(){
-  const now=new Date(),year=now.getFullYear(),month=now.getMonth();
-  const monthName=now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth()+state.viewMonthOffset,1);
+  const year=base.getFullYear(),month=base.getMonth();
+  const monthName=base.toLocaleDateString('en-US',{month:'long',year:'numeric'});
   const firstDay=new Date(year,month,1).getDay(),startOffset=(firstDay+6)%7;
-  const daysInMonth=new Date(year,month+1,0).getDate(),todayDate=now.getDate();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const tk=todayKey();
   const cells=[]; for(let i=0;i<startOffset;i++) cells.push(null); for(let d=1;d<=daysInMonth;d++) cells.push(d);
   while(cells.length%7!==0) cells.push(null);
   const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   return `<div class="view">
-    <h1 class="section-title">${monthName}</h1>
-    <p class="section-sub">Click any date to see that day's tasks.</p>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
+      <h1 class="section-title" style="margin:0;">${monthName}</h1>
+      <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;">
+        <button class="wm-nav-btn" onclick="shiftMonth(-1)" title="Previous month">${svgIcon('<path d="M15 18l-6-6 6-6"></path>',16)}</button>
+        ${state.viewMonthOffset!==0?`<button class="wm-pill-btn" onclick="resetMonth()">Today</button>`:''}
+        <button class="wm-nav-btn" onclick="shiftMonth(1)" title="Next month">${svgIcon('<path d="M9 18l6-6-6-6"></path>',16)}</button>
+      </div>
+    </div>
+    <p class="section-sub">Click any date to plan or review that week.</p>
     <div class="card-sm" style="overflow:hidden;">
       <div class="month-header-row" style="background:var(--accentBg);border-bottom:1px solid var(--border);">
         ${dayNames.map(d=>`<span style="padding:12px 0;text-align:center;font-size:12px;font-weight:700;color:var(--muted3);letter-spacing:.04em;display:block;">${d}</span>`).join('')}
@@ -606,16 +638,15 @@ function renderMonth(){
           rows+=`<div class="month-week-row" style="border-bottom:1px solid var(--border2);">`;
           for(let c=0;c<7;c++){
             const day=cells[r*7+c];
-            const isToday=day===todayDate;
+            const isToday=day!==null&&(year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0'))===tk;
             const isWeekend=c>=5;
             if(day){
               const dk=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-              const isPast=dk<todayKey();
-              const histTasks=state.history[dk]||(dk===todayKey()?todayTasks():[]);
-              const hDone=histTasks.filter(t=>t.done).length;
-              const hTotal=histTasks.length;
+              const dayTasks=tasksForDate(dk);
+              const hDone=dayTasks.filter(t=>t.done).length;
+              const hTotal=dayTasks.length;
               const hasData=hTotal>0;
-              rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:${isToday?'var(--today-highlight)':'var(--surface)'};cursor:${hasData||isToday?'pointer':'default'};" onclick="${hasData||isToday?`openHistModal('${dk}')`:''}" title="${hasData?hDone+'/'+hTotal+' done':''}">
+              rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:${isToday?'var(--today-highlight)':'var(--surface)'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--navHover)'" onmouseout="this.style.background='${isToday?'var(--today-highlight)':'var(--surface)'}'" onclick="goToWeekOf('${dk}')" title="Plan the week of ${dk}${hasData?' · '+hDone+'/'+hTotal+' done':''}">
                 <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:${isToday?'800':'600'};color:${isToday?'#fff':isWeekend?'var(--weekend-color)':'var(--text3)'};background:${isToday?'var(--accent)':'transparent'};">${day}</span>
                 ${hasData?`<div style="margin-top:4px;height:3px;background:var(--ring-track);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${Math.round(hDone/hTotal*100)}%;background:${hDone===hTotal?'var(--done-fill)':'var(--accentMid)'};border-radius:2px;"></div></div>`:''}
               </div>`;
@@ -630,43 +661,6 @@ function renderMonth(){
     </div>
   </div>`;
 }
-function openHistModal(dk){
-  const tasks=state.history[dk]||(dk===todayKey()?todayTasks():[]);
-  const dateObj=new Date(dk+'T12:00:00');
-  const label=dateObj.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const done=tasks.filter(t=>t.done).length,total=tasks.length;
-  const isToday=dk===todayKey();
-  document.getElementById('histModalContent').innerHTML=`
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">
-      <div>
-        <p style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 4px;">${isToday?'Today':'History'}</p>
-        <h2 style="font-family:'Newsreader',serif;font-size:26px;font-weight:400;color:var(--text);margin:0;">${label}</h2>
-      </div>
-      <button onclick="closeHistModal()" style="flex:none;width:32px;height:32px;border:1px solid var(--border);background:var(--surface);border-radius:50%;font-size:18px;color:var(--muted);display:flex;align-items:center;justify-content:center;">×</button>
-    </div>
-    ${total===0?`<p style="color:var(--muted2);font-size:14px;text-align:center;padding:24px 0;">No tasks recorded for this day.</p>`:
-    `<div style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-size:13px;font-weight:600;color:var(--muted2);">${done} of ${total} completed</span>
-        <span style="font-size:13px;font-weight:700;color:var(--accent);">${total?Math.round(done/total*100):0}%</span>
-      </div>
-      <div style="height:8px;background:var(--ring-track);border-radius:6px;overflow:hidden;">
-        <div style="height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--accent);border-radius:6px;"></div>
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:2px;">
-      ${tasks.map(t=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--border2);">
-        <span style="flex:none;width:20px;height:20px;border-radius:6px;border:2px solid ${t.done?'var(--done-fill)':'var(--accentBar)'};background:${t.done?'var(--done-fill)':'transparent'};display:flex;align-items:center;justify-content:center;">
-          ${t.done?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"></path></svg>`:''}
-        </span>
-        <span style="font-size:14px;font-weight:500;color:${t.done?'var(--done-text)':'var(--text)'};text-decoration:${t.done?'line-through':'none'};">${esc(t.text)}</span>
-        <span style="margin-left:auto;font-size:11.5px;font-weight:700;color:${t.done?'var(--done-fill)':'var(--muted2)'};">${t.done?'Done':'Pending'}</span>
-      </div>`).join('')}
-    </div>`}
-    <button onclick="closeHistModal()" style="margin-top:20px;width:100%;padding:11px;border:none;background:var(--accent);color:#fff;border-radius:12px;font-size:14.5px;font-weight:600;">Close</button>`;
-  document.getElementById('histModal').style.display='flex';
-}
-function closeHistModal(){ document.getElementById('histModal').style.display='none'; }
 
 // ── GOALS ──────────────────────────────────────────────────────────────
 function renderGoals(){
@@ -860,12 +854,27 @@ function addNote(){ const t=state.noteTitleDraft.trim(),b=state.noteBodyDraft.tr
 function removeNote(id){ setState({notes:state.notes.filter(n=>n.id!==id)}); }
 
 // ── STICKERS ───────────────────────────────────────────────────────────
-const STICKER_EMOJIS=['🌸','🌿','✨','🌙','⭐','🌈','🦋','🍀','🌻','💫','🎀','🌺','🍃','💖','🌷','🎵','🌟','🐝','🍄','🌊','🎉','🥰','🌱','🫧','🍓'];
+// Expanded sticker set across a few playful categories
+const STICKER_EMOJIS=[
+  '🌸','🌿','🍃','🌻','🌷','🌺','🌹','🌼','🍀','🌵','🌴','🌙','⭐','🌟','✨','💫','🌈','☀️','☁️','❄️',
+  '🎉','🎊','🎀','🎈','🥳','🎵','🎶','🪄','🦋','🐝','🐞','🐱','🐶','🦄','🐰','🦢','🐢','🐬',
+  '💖','💕','💗','❤️','🧡','💛','💚','💙','💜','🤍',
+  '🍓','🍉','🍩','🍪','☕','🧋','🍄','🍯','🧁','🍒',
+  '🫧','🌊','🔥','👑','💎','📌','📍','✏️','📎','🧸','🎯','💡'
+];
 let pickedSticker=null,stickerPanelOpen=false;
+
+// Friendly labels for current view, shown in the picker
+const VIEW_LABELS={today:'Today',week:'Week',month:'Month',goals:'Goals',budget:'Budget',meals:'Meals',shopping:'Shopping',selfcare:'Self-care',notes:'Notes'};
+
+function getViewStickers(){ return state.stickersByView[state.view]||[]; }
+
 function initStickerToolbar(){
   const panel=document.getElementById('stickerPanel');
-  panel.innerHTML=STICKER_EMOJIS.map(e=>`<button class="sticker-pick${pickedSticker===e?' selected':''}" onclick="pickSticker('${e}')">${e}</button>`).join('')
-    +`<button class="sticker-clear" onclick="clearAllStickers()">🗑 Clear all</button>`;
+  const label=VIEW_LABELS[state.view]||state.view;
+  panel.innerHTML=`<p class="sticker-tab-note">Stickers placed here stay on the <b>${label}</b> tab</p>`
+    +STICKER_EMOJIS.map(e=>`<button class="sticker-pick${pickedSticker===e?' selected':''}" onclick="pickSticker('${e}')">${e}</button>`).join('')
+    +`<button class="sticker-clear" onclick="clearAllStickers()">🗑 Clear stickers on this tab</button>`;
 }
 function toggleStickerPanel(){
   stickerPanelOpen=!stickerPanelOpen;
@@ -890,8 +899,9 @@ function placeStickerAt(e){
   const x=((e.clientX-rect.left)/rect.width)*100;
   const y=((e.clientY-rect.top)/rect.height)*100;
   const rot=(Math.random()-0.5)*30;
-  const newSticker={id:uid(),emoji:pickedSticker,x,y,rot};
-  state.stickers=[...state.stickers,newSticker];
+  const view=state.view;
+  if(!state.stickersByView[view]) state.stickersByView[view]=[];
+  state.stickersByView[view]=[...state.stickersByView[view],{id:uid(),emoji:pickedSticker,x,y,rot,size:32}];
   save();
   renderStickers();
   layer.classList.remove('placing');
@@ -900,33 +910,81 @@ function placeStickerAt(e){
   pickedSticker=null;
 }
 function removeSticker(id){
-  state.stickers=state.stickers.filter(s=>s.id!==id);
+  const view=state.view;
+  state.stickersByView[view]=(state.stickersByView[view]||[]).filter(s=>s.id!==id);
   save();
   renderStickers();
 }
 function clearAllStickers(){
-  state.stickers=[];
+  state.stickersByView[state.view]=[];
   save();
   renderStickers();
   toggleStickerPanel();
 }
 function renderStickers(){
   const layer=document.getElementById('stickerLayer');
-  // Preserve the click handler, replace only sticker elements
-  const existing=[...layer.querySelectorAll('.sticker')];
-  existing.forEach(e=>e.remove());
-  state.stickers.forEach(s=>{
+  layer.querySelectorAll('.sticker').forEach(e=>e.remove());
+  getViewStickers().forEach(s=>{
+    if(!s.size) s.size=32;
     const el=document.createElement('div');
     el.className='sticker';
-    el.style.cssText=`left:${s.x}%;top:${s.y}%;transform:rotate(${s.rot}deg);position:absolute;font-size:28px;`;
+    el.style.left=s.x+'%'; el.style.top=s.y+'%'; el.style.transform=`rotate(${s.rot}deg)`; el.style.fontSize=s.size+'px';
     el.textContent=s.emoji;
-    el.title='Double-click to remove';
-    el.ondblclick=(e)=>{ e.stopPropagation(); removeSticker(s.id); };
-    // Drag support
-    let dragging=false,startX,startY,origX,origY;
-    el.onmousedown=(e)=>{ if(e.detail>=2) return; dragging=true; startX=e.clientX; startY=e.clientY; origX=s.x; origY=s.y; e.preventDefault(); };
-    document.addEventListener('mousemove',mv=>{ if(!dragging) return; const lrect=layer.getBoundingClientRect(); const dx=(mv.clientX-startX)/lrect.width*100; const dy=(mv.clientY-startY)/lrect.height*100; s.x=Math.max(0,Math.min(98,origX+dx)); s.y=Math.max(0,Math.min(96,origY+dy)); el.style.left=s.x+'%'; el.style.top=s.y+'%'; });
-    document.addEventListener('mouseup',()=>{ if(dragging){ dragging=false; save(); } });
+    el.title='Drag to move • scroll to resize • double-click to remove';
+    el.ondblclick=(ev)=>{ ev.stopPropagation(); removeSticker(s.id); };
+
+    // Scroll to resize (desktop)
+    el.addEventListener('wheel',(ev)=>{
+      ev.preventDefault(); ev.stopPropagation();
+      const delta=ev.deltaY>0?-3:3;
+      s.size=Math.max(16,Math.min(140,(s.size||32)+delta));
+      el.style.fontSize=s.size+'px';
+      save();
+    },{passive:false});
+
+    // Drag to move (mouse + touch via pointer events)
+    let dragging=false,startX,startY,origX,origY,moved=false;
+    el.addEventListener('pointerdown',(ev)=>{
+      if(ev.target!==el) return; // ignore handle
+      dragging=true; moved=false; startX=ev.clientX; startY=ev.clientY; origX=s.x; origY=s.y;
+      try{ el.setPointerCapture(ev.pointerId); }catch(err){}
+      ev.preventDefault();
+    });
+    el.addEventListener('pointermove',(ev)=>{
+      if(!dragging) return;
+      const lrect=layer.getBoundingClientRect();
+      const dx=ev.clientX-startX, dy=ev.clientY-startY;
+      if(Math.abs(dx)>2||Math.abs(dy)>2) moved=true;
+      s.x=Math.max(0,Math.min(98,origX+dx/lrect.width*100));
+      s.y=Math.max(0,Math.min(96,origY+dy/lrect.height*100));
+      el.style.left=s.x+'%'; el.style.top=s.y+'%';
+    });
+    el.addEventListener('pointerup',(ev)=>{
+      if(dragging){ dragging=false; if(moved) save(); try{ el.releasePointerCapture(ev.pointerId); }catch(err){} }
+    });
+
+    // Resize handle (bottom-right corner)
+    const handle=document.createElement('div');
+    handle.className='sticker-resize-handle';
+    let resizing=false,rStartX,rStartY,rOrigSize;
+    handle.addEventListener('pointerdown',(ev)=>{
+      resizing=true; rStartX=ev.clientX; rStartY=ev.clientY; rOrigSize=s.size||32;
+      try{ handle.setPointerCapture(ev.pointerId); }catch(err){}
+      ev.preventDefault(); ev.stopPropagation();
+    });
+    handle.addEventListener('pointermove',(ev)=>{
+      if(!resizing) return;
+      const delta=((ev.clientX-rStartX)+(ev.clientY-rStartY))/2;
+      s.size=Math.max(16,Math.min(140,rOrigSize+delta));
+      el.style.fontSize=s.size+'px';
+      ev.stopPropagation();
+    });
+    handle.addEventListener('pointerup',(ev)=>{
+      if(resizing){ resizing=false; save(); try{ handle.releasePointerCapture(ev.pointerId); }catch(err){} }
+      ev.stopPropagation();
+    });
+    el.appendChild(handle);
+
     layer.appendChild(el);
   });
 }
@@ -944,6 +1002,8 @@ function render(){
   ['footerTasks','drawerTasks'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=taskStr; });
   const views={today:renderToday,week:renderWeek,month:renderMonth,goals:renderGoals,budget:renderBudget,meals:renderMeals,shopping:renderShopping,selfcare:renderSelfcare,notes:renderNotes};
   document.getElementById('mainContent').innerHTML=(views[state.view]||renderToday)();
+  renderStickers();
+  if(stickerPanelOpen) initStickerToolbar();
 }
 render();
 
