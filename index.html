@@ -938,6 +938,10 @@ function renderStickers(){
     el.style.left=s.x+'%'; el.style.top=s.y+'%'; el.style.transform=`rotate(${s.rot}deg)`; el.style.fontSize=s.size+'px';
     el.textContent=s.emoji;
     el.title='Drag to move • scroll or drag corner to resize • drag top-left to rotate • double-click to remove';
+    // The pop-in entrance animation has fill:forwards, which otherwise keeps
+    // overriding the inline `transform` (and thus blocks rotation) forever.
+    // Once it finishes, drop the animation so our rotate/move transforms apply.
+    el.addEventListener('animationend',()=>{ el.style.animation='none'; el.style.transform=`rotate(${s.rot}deg)`; },{once:true});
     el.ondblclick=(ev)=>{ ev.stopPropagation(); removeSticker(s.id); };
 
     // Scroll to resize (desktop)
