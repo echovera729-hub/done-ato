@@ -1496,7 +1496,40 @@ document.addEventListener('keydown',(e)=>{
   const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}); document.getElementById('pwaManifest').href=URL.createObjectURL(blob);
 })();
 if('serviceWorker' in navigator){
-  const swCode=`const CACHE='sage-v2';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./'])).catch(()=>{}));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{if(res&&res.status===200&&e.request.method==='GET'){const clone=res.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));}return res;}).catch(()=>caches.match('./'))));});`;
+  const swCode='const CACHE="sage-v3";'
+    +'const FONTS_CSS="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap";'
+    +'self.addEventListener("install",e=>{'
+    +'e.waitUntil((async()=>{'
+    +'const cache=await caches.open(CACHE);'
+    +'await cache.add("./");'
+    // Pre-fetch the Google Fonts stylesheet, then every font file (woff2) it references,
+    // so the app renders with its real fonts even on the very first offline launch.
+    +'try{'
+    +'const cssRes=await fetch(FONTS_CSS,{mode:"cors"});'
+    +'if(cssRes.ok){'
+    +'await cache.put(FONTS_CSS,cssRes.clone());'
+    +'const cssText=await cssRes.text();'
+    +'const urls=[...cssText.matchAll(/url\\((https:[^)]+)\\)/g)].map(m=>m[1]);'
+    +'await Promise.all(urls.map(async u=>{try{const r=await fetch(u,{mode:"cors"});if(r.ok)await cache.put(u,r);}catch(err){}}));'
+    +'}'
+    +'}catch(err){}'
+    +'})());'
+    +'self.skipWaiting();'
+    +'});'
+    +'self.addEventListener("activate",e=>{'
+    +'e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));'
+    +'self.clients.claim();'
+    +'});'
+    +'self.addEventListener("fetch",e=>{'
+    +'e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{'
+    // Cache successful same-origin responses AND opaque cross-origin ones
+    // (e.g. fonts requested via <link>, which the browser fetches in no-cors mode).
+    +'if(res&&(res.status===200||res.type==="opaque")&&e.request.method==="GET"){'
+    +'const clone=res.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));'
+    +'}'
+    +'return res;'
+    +'}).catch(()=>caches.match("./"))));'
+    +'});';
   const swBlob=new Blob([swCode],{type:'application/javascript'}); navigator.serviceWorker.register(URL.createObjectURL(swBlob),{scope:'./'}).catch(()=>{});
 }
 </script>
