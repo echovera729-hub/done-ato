@@ -176,6 +176,25 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
 .settings-row-btn:hover{background:var(--navHover);}
 .quote-list-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border2);font-size:13.5px;color:var(--text3);}
 .quote-list-item span{flex:1;}
+/* Calendar day modal */
+.cal-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:150;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.cal-modal{background:var(--surface);border-radius:22px;padding:26px 28px 22px;width:520px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.18);animation:themePop .2s ease;}
+.cal-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.cal-photo-cell{aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;background:var(--border2);}
+.cal-photo-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.cal-photo-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.cal-photo-add{aspect-ratio:1;border-radius:10px;border:2px dashed var(--accentBar);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--muted2);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}
+.cal-photo-add:hover{background:var(--navHover);}
+/* Task row tag color-coding (All view) */
+.task-row-tag-work    { border-left:3px solid #6b7fd7; padding-left:7px !important; }
+.task-row-tag-personal{ border-left:3px solid #7fa37f; padding-left:7px !important; }
+.task-row-tag-health  { border-left:3px solid #d77f8a; padding-left:7px !important; }
+.task-row-tag-errands { border-left:3px solid #d7a857; padding-left:7px !important; }
+/* Tag chip active colors — match each tag */
+.tag-chip.active-work    { background:#6b7fd7;border-color:#6b7fd7;color:#fff; }
+.tag-chip.active-personal{ background:#7fa37f;border-color:#7fa37f;color:#fff; }
+.tag-chip.active-health  { background:#d77f8a;border-color:#d77f8a;color:#fff; }
+.tag-chip.active-errands { background:#d7a857;border-color:#d7a857;color:#fff; }
 
 /* Tablet */
 @media(max-width:1023px) and (min-width:768px){
@@ -335,6 +354,11 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
   </div>
 </div>
 
+<!-- Calendar day modal -->
+<div class="cal-modal-overlay" id="calDayModal" style="display:none;" onclick="if(event.target===this)closeCalModal()">
+  <div class="cal-modal" id="calDayModalContent"></div>
+</div>
+
 <!-- Sticker layer -->
 <div id="stickerLayer"></div>
 
@@ -434,7 +458,10 @@ function defaultState(){
     noteTitleDraft:'', noteBodyDraft:'',
     viewWeekStart: dateToKey(getMonday(new Date())), // Monday of currently displayed week
     viewMonthOffset: 0, // months from current month, for Month tab navigation
-    stickersByView:{} // { todayView: [{id,emoji,x,y,rot,size}], weekView: [...], ... }
+    stickersByView:{}, // { todayView: [{id,emoji,x,y,rot,size}], weekView: [...], ... }
+    calendarNotes:{},  // { 'YYYY-MM-DD': 'note text' } — syncs to Today/Week
+    calendarPhotos:{}, // { 'YYYY-MM-DD': [dataURL, ...] } — calendar-only
+    selectedCalDay:null // currently open day key in the month modal
   };
 }
 
@@ -449,6 +476,9 @@ function ensureStateShape(){
   if(state.stickers){ state.stickersByView.today=state.stickers; delete state.stickers; }
   if(!state.viewWeekStart) state.viewWeekStart=dateToKey(getMonday(new Date()));
   if(state.viewMonthOffset===undefined||state.viewMonthOffset===null) state.viewMonthOffset=0;
+  if(!state.calendarNotes) state.calendarNotes={};
+  if(!state.calendarPhotos) state.calendarPhotos={};
+  if(state.selectedCalDay===undefined) state.selectedCalDay=null;
   if(!state.moodLog) state.moodLog={};
   if(!state.customQuotes) state.customQuotes=[];
   if(state.taskFilterTag===undefined) state.taskFilterTag=null;
@@ -523,6 +553,7 @@ function tasksForDate(dk){
   if(state.history[dk]) return state.history[dk];
   return state.tasks.filter(t=>t.dayKey===dk);
 }
+function getCalNote(dk){ return (state.calendarNotes&&state.calendarNotes[dk])||''; }
 
 // ── STREAK ─────────────────────────────────────────────────────────────
 // Consecutive days (ending today) where every task on that day was completed
@@ -730,6 +761,14 @@ function renderToday(){
         ${MOOD_OPTIONS.map(m=>`<button class="mood-btn${currentMood===m?' selected':''}" onclick="setMood('${m}')" title="${m}">${m}</button>`).join('')}
       </div>
     </div>
+    ${getCalNote(todayKey())?`<div style="background:var(--accentBg);border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px;"><rect x="5.5" y="3.5" width="14" height="17" rx="2"></rect><path d="M9 8.5h6M9 12h6M9 15.5h4"></path></svg>
+      <div style="flex:1;">
+        <p style="margin:0 0 2px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted3);font-weight:700;">Today's calendar note</p>
+        <p style="margin:0;font-size:14px;color:var(--text3);line-height:1.5;white-space:pre-wrap;">${esc(getCalNote(todayKey()))}</p>
+      </div>
+      <button onclick="openCalModal('${todayKey()}')" style="flex:none;font-size:11.5px;font-weight:600;color:var(--accent);background:transparent;border:none;padding:0;cursor:pointer;">Edit</button>
+    </div>`:''}
     <div class="today-grid">
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -738,10 +777,10 @@ function renderToday(){
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <button class="tag-chip${state.taskFilterTag===null?' active':''}" onclick="setTaskFilter(null)">All</button>
-          ${TAGS.map(g=>`<button class="tag-chip${state.taskFilterTag===g.key?' active':''}" onclick="setTaskFilter('${g.key}')"><span class="tag-dot-inline" style="background:${g.color};"></span>${g.label}</button>`).join('')}
+          ${TAGS.map(g=>`<button class="tag-chip${state.taskFilterTag===g.key?' active-'+g.key:''}" onclick="setTaskFilter('${g.key}')" style="${state.taskFilterTag===g.key?'background:'+g.color+';border-color:'+g.color+';color:#fff;':''}"><span class="tag-dot-inline" style="background:${g.color};"></span>${g.label}</button>`).join('')}
         </div>
         <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <input id="taskInp" class="inp" value="${esc(state.taskDraft)}" placeholder="Add a task… ( / )"
+          <input id="taskInp" class="inp" value="${esc(state.taskDraft)}" placeholder="${state.taskFilterTag?'Add a '+TAGS.find(g=>g.key===state.taskFilterTag)?.label+' task…':'Add a task… ( / )'}"
             style="flex:1;min-width:0;" oninput="state.taskDraft=this.value" onkeydown="if(event.key==='Enter'){addTask();}">
           <button class="btn-icon-add" onclick="addTask()">+</button>
         </div>
@@ -754,11 +793,13 @@ function renderToday(){
         <div style="display:flex;flex-direction:column;gap:2px;">
           ${visibleTasks.map(t=>{
             const tg=tagInfo(t.tag);
+            // In "All" view, show a color-coded left border for each tag
+            const showColorBorder = !state.taskFilterTag && tg;
             return `
-          <div class="task-row" draggable="true"
+          <div class="task-row${showColorBorder?' task-row-tag-'+tg.key:''}" draggable="true"
             ondragstart="taskDragStart(event,'${t.id}')" ondragend="taskDragEnd(event)"
             ondragover="taskDragOver(event)" ondragleave="taskDragLeave(event)" ondrop="taskDrop(event,'${t.id}')"
-            style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border2);">
+            style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border2)${showColorBorder?';border-left:3px solid '+tg.color+';padding-left:7px':''};">
             <span class="drag-handle" title="Drag to reorder">${svgIcon('<circle cx="9" cy="6" r="1" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1" fill="currentColor" stroke="none"></circle>',16)}</span>
             <button onclick="toggleTask('${t.id}')" style="flex:none;width:23px;height:23px;border-radius:7px;border:2px solid ${t.done?'var(--done-fill)':'var(--accentBar)'};background:${t.done?'var(--done-fill)':'var(--surface)'};display:flex;align-items:center;justify-content:center;padding:0;transition:all .2s;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:${t.done?1:0};"><path d="m5 12.5 4.5 4.5L19 7"></path></svg>
@@ -803,7 +844,9 @@ function renderToday(){
 function addTask(){
   const t=state.taskDraft.trim(); if(!t) return;
   const maxOrder=state.tasks.reduce((m,x)=>Math.max(m,x.order||0),0);
-  const newTask={id:uid(),text:t,done:false,priority:false,dayKey:todayKey(),tag:null,recurring:null,recurDay:null,order:maxOrder+1000};
+  // Inherit the currently active tag filter so the task immediately appears in that category view
+  const inheritedTag = state.taskFilterTag || null;
+  const newTask={id:uid(),text:t,done:false,priority:false,dayKey:todayKey(),tag:inheritedTag,recurring:null,recurDay:null,order:maxOrder+1000};
   setState({tasks:[...state.tasks,newTask],taskDraft:''});
 }
 function toggleTask(id){ setState({tasks:state.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)}); }
@@ -896,11 +939,14 @@ function renderWeek(){
               ${tg?`<span style="width:7px;height:7px;flex:none;border-radius:50%;background:${tg.color};"></span>`:''}
               <span style="font-size:11.5px;color:${t.done?'var(--done-text)':'var(--text)'};text-decoration:${t.done?'line-through':'none'};font-weight:500;line-height:1.2;">${esc(t.text)}</span>
             </div>`;}).join('')}
+            ${getCalNote(dk)?`<div style="margin-top:4px;padding:5px 7px;background:var(--accentBg);border-radius:7px;cursor:pointer;" onclick="openCalModal('${dk}')">
+              <p style="margin:0;font-size:10.5px;color:var(--text3);line-height:1.35;font-style:italic;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${esc(getCalNote(dk))}</p>
+            </div>`:''}
             ${editable?`<input value="${esc((state.weekDraft||{})[dk]||'')}" placeholder="+ add task"
               style="width:100%;padding:5px 6px;border:1px dashed var(--accentBar);border-radius:7px;font-size:11.5px;outline:none;background:transparent;color:var(--text);margin-top:auto;"
               oninput="state.weekDraft['${dk}']=this.value"
               onkeydown="if(event.key==='Enter'){addWeekTask('${dk}',this);}">`
-              :(dTotal===0?`<p style="font-size:10.5px;color:var(--muted2);text-align:center;padding:8px 0;margin:0;">No tasks recorded</p>`:'')}
+              :(dTotal===0&&!getCalNote(dk)?`<p style="font-size:10.5px;color:var(--muted2);text-align:center;padding:8px 0;margin:0;">No tasks recorded</p>`:'')}
           </div>
         </div>`;
       }).join('')}
@@ -919,9 +965,115 @@ function addWeekTask(dk){
 // ── MONTH ──────────────────────────────────────────────────────────────
 function shiftMonth(delta){ setState({viewMonthOffset:state.viewMonthOffset+delta}); }
 function resetMonth(){ setState({viewMonthOffset:0}); }
+// Opens the day detail modal from the Month tab (does NOT navigate away)
+function openCalModal(dk){
+  state.selectedCalDay=dk;
+  save();
+  renderCalModal();
+  document.getElementById('calDayModal').style.display='flex';
+}
+function closeCalModal(){
+  document.getElementById('calDayModal').style.display='none';
+  state.selectedCalDay=null;
+  save();
+}
+
+// Keep goToWeekOf for any other use (e.g., settings/links), but the month
+// grid now calls openCalModal, so this is only invoked explicitly.
 function goToWeekOf(dk){
   const d=new Date(dk+'T12:00:00');
   setState({viewWeekStart:dateToKey(getMonday(d)),view:'week'});
+}
+
+function renderCalModal(){
+  const dk=state.selectedCalDay; if(!dk) return;
+  const dateObj=new Date(dk+'T12:00:00');
+  const label=dateObj.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const isToday=dk===todayKey();
+  const note=state.calendarNotes[dk]||'';
+  const photos=state.calendarPhotos[dk]||[];
+  const tasks=tasksForDate(dk);
+  const done=tasks.filter(t=>t.done).length;
+
+  document.getElementById('calDayModalContent').innerHTML=`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">
+      <div>
+        <p style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 4px;">${isToday?'Today':'Calendar'}</p>
+        <h2 style="font-family:'Newsreader',serif;font-size:24px;font-weight:400;color:var(--text);margin:0;">${label}</h2>
+        ${tasks.length>0?`<p style="margin:4px 0 0;font-size:12.5px;color:var(--muted2);font-weight:600;">${done}/${tasks.length} tasks done</p>`:''}
+      </div>
+      <button onclick="closeCalModal()" style="flex:none;width:32px;height:32px;border:1px solid var(--border);background:var(--surface);border-radius:50%;font-size:18px;color:var(--muted);display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+
+    <!-- Notes (syncs to Today/Week) -->
+    <div style="margin-bottom:22px;">
+      <p style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted3);font-weight:700;margin:0 0 8px;">Notes <span style="font-size:10px;color:var(--muted2);letter-spacing:0;text-transform:none;font-weight:500;">— syncs to Today & Week views</span></p>
+      <textarea id="calNoteArea" placeholder="Write a note for this day…" rows="3"
+        style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px;color:var(--text);background:var(--inpBg);outline:none;resize:vertical;font-family:inherit;line-height:1.5;"
+        oninput="saveCalNote('${dk}',this.value)">${esc(note)}</textarea>
+    </div>
+
+    <!-- Photos (calendar-only) -->
+    <div style="margin-bottom:22px;">
+      <p style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted3);font-weight:700;margin:0 0 8px;">Photos <span style="font-size:10px;color:var(--muted2);letter-spacing:0;text-transform:none;font-weight:500;">— calendar only</span></p>
+      <div class="cal-photo-grid" id="calPhotoGrid">
+        ${photos.map((src,i)=>`<div class="cal-photo-cell">
+          <img src="${src}" alt="Photo ${i+1}">
+          <button class="cal-photo-del" onclick="delCalPhoto('${dk}',${i})">×</button>
+        </div>`).join('')}
+        <label class="cal-photo-add">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+          Add photo
+          <input type="file" accept="image/*" multiple style="display:none;" onchange="addCalPhotos('${dk}',this)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Tasks summary -->
+    ${tasks.length>0?`<div>
+      <p style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted3);font-weight:700;margin:0 0 10px;">Tasks</p>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${tasks.map(t=>{const tg=tagInfo(t.tag);return`<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border2);">
+          <span style="flex:none;width:18px;height:18px;border-radius:5px;border:2px solid ${t.done?'var(--done-fill)':'var(--accentBar)'};background:${t.done?'var(--done-fill)':'transparent'};display:flex;align-items:center;justify-content:center;">
+            ${t.done?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"></path></svg>`:''}
+          </span>
+          ${tg?`<span style="width:8px;height:8px;flex:none;border-radius:50%;background:${tg.color};"></span>`:''}
+          <span style="flex:1;font-size:13.5px;color:${t.done?'var(--done-text)':'var(--text)'};text-decoration:${t.done?'line-through':'none'};font-weight:500;">${esc(t.text)}</span>
+          <span style="font-size:11px;color:${t.done?'var(--done-fill)':'var(--muted2)'};font-weight:700;">${t.done?'Done':'Pending'}</span>
+        </div>`;}).join('')}
+      </div>
+    </div>`:''}
+
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+      <button onclick="goToWeekOf('${dk}');closeCalModal();" style="flex:1;padding:11px;border:1px solid var(--border);background:var(--surface);color:var(--accent);border-radius:12px;font-size:13.5px;font-weight:600;">Go to this week →</button>
+      <button onclick="closeCalModal()" style="flex:1;padding:11px;border:none;background:var(--accent);color:#fff;border-radius:12px;font-size:13.5px;font-weight:600;">Done</button>
+    </div>`;
+}
+
+function saveCalNote(dk,val){
+  if(val.trim()) state.calendarNotes[dk]=val;
+  else delete state.calendarNotes[dk];
+  save();
+}
+function addCalPhotos(dk,input){
+  const files=Array.from(input.files); if(!files.length) return;
+  let done=0;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      if(!state.calendarPhotos[dk]) state.calendarPhotos[dk]=[];
+      state.calendarPhotos[dk].push(e.target.result);
+      done++;
+      if(done===files.length){ save(); renderCalModal(); }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function delCalPhoto(dk,idx){
+  state.calendarPhotos[dk]=state.calendarPhotos[dk].filter((_,i)=>i!==idx);
+  if(!state.calendarPhotos[dk].length) delete state.calendarPhotos[dk];
+  save();
+  renderCalModal();
 }
 
 function renderMonth(){
@@ -944,7 +1096,7 @@ function renderMonth(){
         <button class="wm-nav-btn" onclick="shiftMonth(1)" title="Next month">${svgIcon('<path d="M9 18l6-6-6-6"></path>',16)}</button>
       </div>
     </div>
-    <p class="section-sub">Click any date to plan or review that week.</p>
+    <p class="section-sub">Click any date to add notes, photos, or review tasks.</p>
     <div class="card-sm" style="overflow:hidden;">
       <div class="month-header-row" style="background:var(--accentBg);border-bottom:1px solid var(--border);">
         ${dayNames.map(d=>`<span style="padding:12px 0;text-align:center;font-size:12px;font-weight:700;color:var(--muted3);letter-spacing:.04em;display:block;">${d}</span>`).join('')}
@@ -963,9 +1115,15 @@ function renderMonth(){
               const hDone=dayTasks.filter(t=>t.done).length;
               const hTotal=dayTasks.length;
               const hasData=hTotal>0;
-              rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:${isToday?'var(--today-highlight)':'var(--surface)'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--navHover)'" onmouseout="this.style.background='${isToday?'var(--today-highlight)':'var(--surface)'}'" onclick="goToWeekOf('${dk}')" title="Plan the week of ${dk}${hasData?' · '+hDone+'/'+hTotal+' done':''}">
+              const hasNote=!!(state.calendarNotes[dk]&&state.calendarNotes[dk].trim());
+              const hasPhotos=!!(state.calendarPhotos[dk]&&state.calendarPhotos[dk].length);
+              rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:${isToday?'var(--today-highlight)':'var(--surface)'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--navHover)'" onmouseout="this.style.background='${isToday?'var(--today-highlight)':'var(--surface)'}'" onclick="openCalModal('${dk}')" title="${dk}${hasData?' · '+hDone+'/'+hTotal+' done':''}${hasNote?' · note':''}${hasPhotos?' · '+state.calendarPhotos[dk].length+' photo(s)':''}">
                 <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:${isToday?'800':'600'};color:${isToday?'#fff':isWeekend?'var(--weekend-color)':'var(--text3)'};background:${isToday?'var(--accent)':'transparent'};">${day}</span>
                 ${hasData?`<div style="margin-top:4px;height:3px;background:var(--ring-track);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${Math.round(hDone/hTotal*100)}%;background:${hDone===hTotal?'var(--done-fill)':'var(--accentMid)'};border-radius:2px;"></div></div>`:''}
+                <div style="display:flex;gap:3px;margin-top:3px;">
+                  ${hasNote?`<span title="Has note" style="width:6px;height:6px;border-radius:50%;background:var(--accentMid);display:inline-block;"></span>`:''}
+                  ${hasPhotos?`<span title="${state.calendarPhotos[dk].length} photo(s)" style="width:6px;height:6px;border-radius:50%;background:var(--muted2);display:inline-block;"></span>`:''}
+                </div>
               </div>`;
             } else {
               rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:var(--surface);"></div>`;
