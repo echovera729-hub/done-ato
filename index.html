@@ -126,7 +126,7 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
 .sticker-fab{width:48px;height:48px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .2s,background .15s;}
 .sticker-fab:hover{transform:scale(1.08);}
 .sticker-fab.active{background:var(--neg-text);}
-.sticker-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.14);display:none;flex-wrap:wrap;gap:5px;width:260px;max-height:300px;overflow-y:auto;}
+.sticker-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.14);display:none;flex-wrap:wrap;gap:5px;width:290px;max-height:360px;overflow-y:auto;}
 .sticker-panel.open{display:flex;}
 .sticker-panel .sticker-tab-note{width:100%;font-size:11px;color:var(--muted2);font-weight:600;margin:0 0 4px;padding:0 2px;}
 .sticker-pick{width:36px;height:36px;border:none;background:transparent;font-size:20px;border-radius:10px;cursor:pointer;transition:background .15s;flex:none;}
@@ -228,7 +228,7 @@ nav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
   .bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--muted3);padding:6px 2px;font-size:10px;font-weight:600;letter-spacing:.03em;transition:color .15s;border-top:2px solid transparent;}
   .bnav-btn.active{color:var(--accent);border-top-color:var(--bnav-active-border);}
   .today-grid{grid-template-columns:1fr;}.budget-summary{grid-template-columns:1fr;}.selfcare-grid{grid-template-columns:1fr;}.notes-masonry{columns:1;}.week-grid{grid-template-columns:1fr;}.section-title{font-size:28px;}.section-sub{font-size:14px;margin-bottom:20px;}.card{padding:18px;}
-  .month-week-row .mcell{min-height:52px;padding:6px 4px;}.month-header-row span{font-size:11px;padding:10px 0;}
+  .month-week-row .mcell{min-height:80px;padding:6px 5px;}.month-header-row span{font-size:11px;padding:10px 0;}
   .sticker-toolbar{bottom:76px;right:12px;}
 }
 </style>
@@ -1117,13 +1117,16 @@ function renderMonth(){
               const hasData=hTotal>0;
               const hasNote=!!(state.calendarNotes[dk]&&state.calendarNotes[dk].trim());
               const hasPhotos=!!(state.calendarPhotos[dk]&&state.calendarPhotos[dk].length);
-              rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:${isToday?'var(--today-highlight)':'var(--surface)'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--navHover)'" onmouseout="this.style.background='${isToday?'var(--today-highlight)':'var(--surface)'}'" onclick="openCalModal('${dk}')" title="${dk}${hasData?' · '+hDone+'/'+hTotal+' done':''}${hasNote?' · note':''}${hasPhotos?' · '+state.calendarPhotos[dk].length+' photo(s)':''}">
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:${isToday?'800':'600'};color:${isToday?'#fff':isWeekend?'var(--weekend-color)':'var(--text3)'};background:${isToday?'var(--accent)':'transparent'};">${day}</span>
-                ${hasData?`<div style="margin-top:4px;height:3px;background:var(--ring-track);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${Math.round(hDone/hTotal*100)}%;background:${hDone===hTotal?'var(--done-fill)':'var(--accentMid)'};border-radius:2px;"></div></div>`:''}
-                <div style="display:flex;gap:3px;margin-top:3px;">
-                  ${hasNote?`<span title="Has note" style="width:6px;height:6px;border-radius:50%;background:var(--accentMid);display:inline-block;"></span>`:''}
-                  ${hasPhotos?`<span title="${state.calendarPhotos[dk].length} photo(s)" style="width:6px;height:6px;border-radius:50%;background:var(--muted2);display:inline-block;"></span>`:''}
-                </div>
+              const noteText=hasNote?state.calendarNotes[dk].trim():'';
+              const photos=hasPhotos?state.calendarPhotos[dk]:[];
+              rows+=`<div class="mcell" style="min-height:110px;padding:8px 9px;border-right:${c<6?'1px solid var(--border2)':'none'};background:${isToday?'var(--today-highlight)':'var(--surface)'};cursor:pointer;transition:background .15s;vertical-align:top;" onmouseover="this.style.background='var(--navHover)'" onmouseout="this.style.background='${isToday?'var(--today-highlight)':'var(--surface)'}'" onclick="openCalModal('${dk}')">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:${isToday?'800':'600'};color:${isToday?'#fff':isWeekend?'var(--weekend-color)':'var(--text3)'};background:${isToday?'var(--accent)':'transparent'};flex:none;">${day}</span>
+                ${hasData?`<div style="margin-top:3px;height:3px;background:var(--ring-track);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${Math.round(hDone/hTotal*100)}%;background:${hDone===hTotal?'var(--done-fill)':'var(--accentMid)'};border-radius:2px;"></div></div>`:''}
+                ${hasNote?`<p style="margin:5px 0 0;font-size:10px;color:var(--text3);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;">${esc(noteText)}</p>`:''}
+                ${photos.length>0?`<div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;">
+                  ${photos.slice(0,3).map((src,i)=>`<img src="${src}" style="width:${photos.length===1?'100%':'calc(50% - 2px)'};max-width:${photos.length===1?'100%':'52px'};aspect-ratio:1;object-fit:cover;border-radius:5px;display:block;">`).join('')}
+                  ${photos.length>3?`<div style="width:calc(50% - 2px);max-width:52px;aspect-ratio:1;border-radius:5px;background:var(--accentBg);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted3);">+${photos.length-3}</div>`:''}
+                </div>`:''}
               </div>`;
             } else {
               rows+=`<div class="mcell" style="min-height:72px;padding:8px 10px;border-right:${c<6?'1px solid var(--border2)':'none'};background:var(--surface);"></div>`;
@@ -1429,14 +1432,67 @@ function renderInsights(){
 
 // ── STICKERS ───────────────────────────────────────────────────────────
 // Expanded sticker set across a few playful categories
-const STICKER_EMOJIS=[
-  '🌸','🌿','🍃','🌻','🌷','🌺','🌹','🌼','🍀','🌵','🌴','🌙','⭐','🌟','✨','💫','🌈','☀️','☁️','❄️',
-  '🎉','🎊','🎀','🎈','🥳','🎵','🎶','🪄',
-  '🦋','🐝','🐞','🐱','🐶','🦄','🐰','🦢','🐢','🐬','🐼','🦊','🦁','🐯','🐨','🐻','🐮','🐷','🐸','🦉','🐧','🐠','🦒','🐘','🦓','🐴','🐔','🐳','🦔','🐭','🐹','🦝','🐙','🦩',
-  '💖','💕','💗','❤️','🧡','💛','💚','💙','💜','🤍',
-  '🍓','🍉','🍩','🍪','☕','🧋','🍄','🍯','🧁','🍒',
-  '🫧','🌊','🔥','👑','💎','📌','📍','✏️','📎','🧸','🎯','💡'
+// Sticker groups — each group has a label and array of emoji/text stickers
+const STICKER_GROUPS = [
+  { label: '🌸 Nature',    items: ['🌸','🌿','🍃','🌻','🌷','🌺','🌹','🌼','🍀','🌵','🌴','🌙','⭐','🌟','✨','💫','🌈','☀️','☁️','❄️'] },
+  { label: '🎉 Fun',       items: ['🎉','🎊','🎀','🎈','🥳','🎵','🎶','🪄','🔥','👑','💎','🎯','💡','🧸','📌','✏️'] },
+  { label: '🐾 Animals',   items: ['🦋','🐝','🐞','🐱','🐶','🦄','🐰','🦢','🐢','🐬','🐼','🦊','🦁','🐯','🐨','🐻','🐮','🐷','🐸','🦉','🐧','🐠','🦒','🐘','🦓','🐴','🐔','🐳','🦔','🐭','🐹','🦝','🐙','🦩'] },
+  { label: '💖 Hearts',    items: ['💖','💕','💗','❤️','🧡','💛','💚','💙','💜','🤍','🫧','🌊'] },
+  { label: '🍓 Food',      items: ['🍓','🍉','🍩','🍪','☕','🧋','🍄','🍯','🧁','🍒'] },
+  {
+    label: '⚔️ Demon Slayer',
+    items: [
+      '🗡️', // sword
+      '🔴', // Tanjiro mark
+      '🟢', // Nezuko
+      '🔵', // water breath
+      '🌊', // water form
+      '⚡', // thunder breath
+      '🌬️', // wind
+      '🐍', // serpent breath
+      '🦋', // butterfly (Shinobu)
+      '🌸', // wisteria
+      '🌙', // moon breath
+      '☀️', // sun breath
+      '💥', // explosion
+      '🎋', // bamboo (Nezuko's)
+      '🫂', // tanjiro hug
+      '💚', // Nezuko
+      '🔶', // flame (Rengoku)
+      '🧊', // ice
+      '🐉', // dragon (Doma)
+      '💜', // Akaza
+    ]
+  },
+  {
+    label: '🕵️ Spy x Family',
+    items: [
+      '🔫', // Loid/Twilight
+      '🍰', // Anya's favourite
+      '🧠', // Anya reads minds
+      '😲', // Anya shocked face
+      '😏', // Anya smug
+      '😄', // Anya excited
+      '🎒', // school (Eden)
+      '⭐', // Stella star
+      '🐕', // Bond the dog
+      '🔪', // Yor
+      '🌹', // Yor's roses
+      '💍', // fake marriage ring
+      '🕵️', // Twilight disguise
+      '🃏', // mission card
+      '🏫', // Eden Academy
+      '💪', // Yor strength
+      '🤫', // secret family
+      '👨‍👩‍👧', // Forger family
+      '💜', // purple (Yor)
+      '🌙', // night ops
+    ]
+  },
 ];
+
+// Flat list for backwards compat
+const STICKER_EMOJIS = STICKER_GROUPS.flatMap(g=>g.items);
 let pickedSticker=null,stickerPanelOpen=false,selectedStickerId=null;
 
 // Friendly labels for current view, shown in the picker
@@ -1447,9 +1503,13 @@ function getViewStickers(){ return state.stickersByView[state.view]||[]; }
 function initStickerToolbar(){
   const panel=document.getElementById('stickerPanel');
   const label=VIEW_LABELS[state.view]||state.view;
-  panel.innerHTML=`<p class="sticker-tab-note">Stickers placed here stay on the <b>${label}</b> tab</p>`
-    +STICKER_EMOJIS.map(e=>`<button class="sticker-pick${pickedSticker===e?' selected':''}" onclick="pickSticker('${e}')">${e}</button>`).join('')
-    +`<button class="sticker-clear" onclick="clearAllStickers()">🗑 Clear stickers on this tab</button>`;
+  let html=`<p class="sticker-tab-note">Stickers stay on the <b>${label}</b> tab</p>`;
+  STICKER_GROUPS.forEach(g=>{
+    html+=`<div style="width:100%;font-size:10.5px;font-weight:700;color:var(--muted3);letter-spacing:.06em;text-transform:uppercase;padding:8px 2px 4px;border-top:1px solid var(--border2);margin-top:2px;">${g.label}</div>`;
+    html+=g.items.map(e=>`<button class="sticker-pick${pickedSticker===e?' selected':''}" onclick="pickSticker('${e}')">${e}</button>`).join('');
+  });
+  html+=`<button class="sticker-clear" onclick="clearAllStickers()">🗑 Clear stickers on this tab</button>`;
+  panel.innerHTML=html;
 }
 function toggleStickerPanel(){
   stickerPanelOpen=!stickerPanelOpen;
