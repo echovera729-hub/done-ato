@@ -1714,7 +1714,30 @@ document.addEventListener('keydown',(e)=>{
   const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}); document.getElementById('pwaManifest').href=URL.createObjectURL(blob);
 })();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' })
+    .then(reg => {
+      // If a new SW is waiting (update available), tell it to skip waiting
+      // and take over immediately without a second page reload.
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        }
+      });
+    })
+    .catch(() => {});
+
+  // When the SW claims this client after an update, reload once to ensure
+  // the freshly cached index.html is running (not the old in-memory one).
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) { refreshing = true; window.location.reload(); }
+  });
 }
 </script>
 </body>
